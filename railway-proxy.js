@@ -6,7 +6,7 @@
  */
 
 const http = require('http');
-const httpProxy = require('http-proxy');
+const url = require('url');
 const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
@@ -14,9 +14,7 @@ const WRANGLER_PORT = 3001; // Use a different port for Wrangler
 
 console.log(`🚂 Starting Railway Proxy on 0.0.0.0:${PORT} -> localhost:${WRANGLER_PORT}`);
 
-// Create proxy server
-const proxy = httpProxy.createProxyServer({});
-
+// Create simple proxy server using Node.js built-in modules
 const server = http.createServer((req, res) => {
   // Enable CORS for Railway
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,20 +27,40 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Proxy to Wrangler
-  proxy.web(req, res, {
-    target: `http://localhost:${WRANGLER_PORT}`,
-    changeOrigin: true
-  });
-});
+  // Parse URL
+  const parsedUrl = url.parse(req.url);
+  
+  // Create proxy request to Wrangler
+  const proxyOptions = {
+    hostname: 'localhost',
+    port: WRANGLER_PORT,
+    path: parsedUrl.path,
+    method: req.method,
+    headers: {
+      ...req.headers,
+      host: `localhost:${WRANGLER_PORT}`
+    }
+  };
 
-// Handle proxy errors
-proxy.on('error', (err, req, res) => {
-  console.error('Proxy error:', err);
-  if (!res.headersSent) {
-    res.writeHead(502, { 'Content-Type': 'text/plain' });
-    res.end('Bad Gateway: Could not connect to Wrangler server');
-  }
+  const proxyReq = http.request(proxyOptions, (proxyRes) => {
+    // Copy status and headers from Wrangler response
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    
+    // Pipe response data
+    proxyRes.pipe(res);
+  });
+
+  // Handle proxy errors
+  proxyReq.on('error', (err) => {
+    console.error('Proxy error:', err);
+    if (!res.headersSent) {
+      res.writeHead(502, { 'Content-Type': 'text/plain' });
+      res.end('Bad Gateway: Could not connect to Wrangler server');
+    }
+  });
+
+  // Pipe request data
+  req.pipe(proxyReq);
 });
 
 // Start Wrangler in background
