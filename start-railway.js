@@ -1,69 +1,43 @@
 #!/usr/bin/env node
 
 /**
- * Simple Railway startup script for MailZero
+ * Railway startup script for MailZero
+ * This runs the development server directly since MailZero uses Cloudflare Workers
  */
 
-const { spawn } = require('child_process');
+const { exec } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'production';
 
 console.log(`🚂 Starting MailZero on Railway - Port: ${PORT}`);
 
-// For now, let's try to start the server directly
-// You may need to adapt this based on your actual server structure
+// Run the development server which will handle both frontend and backend
+const startCommand = `pnpm run dev`;
 
-if (NODE_ENV === 'production') {
-  // Try to start using the existing mail app start script
-  console.log('Starting MailZero mail app...');
-  
-  const mailProcess = spawn('pnpm', ['--filter=@zero/mail', 'start'], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      PORT: PORT,
-      NODE_ENV: NODE_ENV
-    }
-  });
+console.log(`Executing: ${startCommand}`);
 
-  mailProcess.on('error', (err) => {
-    console.error('Mail process error:', err);
-    console.log('Trying direct turbo start...');
-    
-    // Fallback: try running turbo start
-    const fallbackProcess = spawn('pnpm', ['run', 'start'], {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        NODE_ENV: 'production',
-        PORT: PORT
-      }
-    });
-    
-    fallbackProcess.on('error', (fallbackErr) => {
-      console.error('Fallback also failed:', fallbackErr);
-      process.exit(1);
-    });
-  });
+const child = exec(startCommand, {
+  env: {
+    ...process.env,
+    PORT: PORT,
+    NODE_ENV: 'development' // Use dev mode since the app is designed for Cloudflare Workers
+  }
+});
 
-  mailProcess.on('close', (code) => {
-    console.log(`Mail process exited with code ${code}`);
-    process.exit(code);
-  });
-} else {
-  // Development mode
-  console.log('Development mode detected, starting dev server...');
-  const devProcess = spawn('npm', ['run', 'dev'], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      PORT: PORT
-    }
-  });
-  
-  devProcess.on('error', (err) => {
-    console.error('Dev process error:', err);
-    process.exit(1);
-  });
-}
+child.stdout.on('data', (data) => {
+  console.log(data.toString());
+});
+
+child.stderr.on('data', (data) => {
+  console.error(data.toString());
+});
+
+child.on('close', (code) => {
+  console.log(`Process exited with code ${code}`);
+  process.exit(code);
+});
+
+child.on('error', (err) => {
+  console.error('Error starting process:', err);
+  process.exit(1);
+});

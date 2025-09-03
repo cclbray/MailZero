@@ -8,4 +8,4 @@ cmd = "npm install -g corepack@0.24.1 && corepack enable && pnpm install --no-fr
 cmd = "npx turbo run build"
 
 [start]
-cmd = "pnpm run start"
+cmd = "node start-railway.js"
