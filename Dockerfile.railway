@@ -1,0 +1,66 @@
+# Multi-stage build for Railway deployment
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Dependencies stage
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/mail/package.json ./apps/mail/
+COPY apps/server/package.json ./apps/server/
+COPY packages/ ./packages/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build stage
+FROM base AS builder
+WORKDIR /app
+
+# Copy everything
+COPY . .
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/mail/node_modules ./apps/mail/node_modules
+COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
+
+# Build the applications
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build frontend
+RUN cd apps/mail && pnpm run build
+
+# Build backend
+RUN cd apps/server && pnpm run build
+
+# Runtime stage
+FROM base AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 railway
+RUN adduser --system --uid 1001 railway
+
+# Copy built applications
+COPY --from=builder --chown=railway:railway /app/apps/mail/build ./apps/mail/build
+COPY --from=builder --chown=railway:railway /app/apps/server/dist ./apps/server/dist
+COPY --from=builder --chown=railway:railway /app/node_modules ./node_modules
+COPY --from=builder --chown=railway:railway /app/package.json ./package.json
+
+# Copy necessary runtime files
+COPY --from=builder --chown=railway:railway /app/apps/server/src ./apps/server/src
+COPY --from=builder --chown=railway:railway /app/apps/server/package.json ./apps/server/package.json
+
+USER railway
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start the application
+CMD ["node", "apps/server/dist/main.js"]
