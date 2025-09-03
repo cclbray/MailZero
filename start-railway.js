@@ -15,10 +15,10 @@ console.log(`🚂 Starting MailZero on Railway - Port: ${PORT}`);
 // You may need to adapt this based on your actual server structure
 
 if (NODE_ENV === 'production') {
-  // Try to start the backend server
-  console.log('Starting backend server...');
+  // Try to start using the existing mail app start script
+  console.log('Starting MailZero mail app...');
   
-  const serverProcess = spawn('node', ['apps/server/dist/main.js'], {
+  const mailProcess = spawn('pnpm', ['--filter=@zero/mail', 'start'], {
     stdio: 'inherit',
     env: {
       ...process.env,
@@ -27,12 +27,12 @@ if (NODE_ENV === 'production') {
     }
   });
 
-  serverProcess.on('error', (err) => {
-    console.error('Server process error:', err);
-    console.log('Trying alternative startup method...');
+  mailProcess.on('error', (err) => {
+    console.error('Mail process error:', err);
+    console.log('Trying direct turbo start...');
     
-    // Fallback: try running the existing start script in production mode
-    const fallbackProcess = spawn('npm', ['run', 'start'], {
+    // Fallback: try running turbo start
+    const fallbackProcess = spawn('pnpm', ['run', 'start'], {
       stdio: 'inherit',
       env: {
         ...process.env,
@@ -47,8 +47,8 @@ if (NODE_ENV === 'production') {
     });
   });
 
-  serverProcess.on('close', (code) => {
-    console.log(`Server process exited with code ${code}`);
+  mailProcess.on('close', (code) => {
+    console.log(`Mail process exited with code ${code}`);
     process.exit(code);
   });
 } else {
