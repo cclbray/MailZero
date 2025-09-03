@@ -57,7 +57,6 @@
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@hono/node-server": "^1.8.2",
     "drizzle-kit": "catalog:",
     "react-router": "^7.6.3",
     "zod": "4.1.1",
