@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_22", "pnpm-9_x", "openssl"]
 cmd = "npm install -g corepack@0.24.1 && corepack enable && pnpm install --no-frozen-lockfile"
 
 [phases.build]
-cmd = "npx turbo run build && cd apps/mail && pnpm run build"
+cmd = "npx turbo run build && ls -la apps/mail/ && ls -la apps/mail/build/ || echo 'Build directory not found, running individual build' && cd apps/mail && pnpm run build && ls -la build/"
 
 [start]
 cmd = "node railway-proxy.js"
