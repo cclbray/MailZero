@@ -8,4 +8,4 @@ cmd = "npm install -g corepack@0.24.1 && corepack enable && pnpm install --no-fr
 cmd = "npx turbo run build"
 
 [start]
-cmd = "cd apps/mail && npx wrangler dev --port 3000 --host 0.0.0.0 --show-interactive-dev-session=false"
+cmd = "node railway-proxy.js"
