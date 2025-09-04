@@ -9,8 +9,8 @@ nixPkgs = ["nodejs_22", "pnpm-9_x", "openssl"]
 [phases.install]
 cmd = "npm install -g corepack@0.24.1 && corepack enable && pnpm install --frozen-lockfile"
 
-[phases.build] 
-cmd = "npx turbo run build && echo 'Checking apps/mail structure:' && ls -la apps/mail/ && echo 'Looking for build directory:' && ls -la apps/mail/build/ 2>/dev/null || echo 'No build directory found, running react-router build' && cd apps/mail && pnpm run build && echo 'After react-router build:' && ls -la build/ 2>/dev/null || echo 'Still no build directory'"
+[phases.build]
+cmd = "pnpm run railway:build"
 
 [start]
-cmd = "node railway-proxy.js"
+cmd = "pnpm run railway:start"

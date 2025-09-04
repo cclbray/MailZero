@@ -38,9 +38,9 @@
     "eval": "dotenv -- pnpm --filter=@zero/server run eval",
     "eval:dev": "dotenv -- pnpm --filter=@zero/server run eval:dev",
     "eval:ci": "dotenv -- pnpm --filter=@zero/server run eval:ci",
-    "railway:start": "node railway-start.js",
-    "railway:build": "turbo run build",
-    "railway:dev": "turbo run dev",
+    "railway:build": "turbo run build && cd apps/mail && pnpm run build",
+    "railway:start": "cd apps/server && node dist/railway-main.js",
+    "railway:dev": "cd apps/server && tsx src/railway-main.ts",
     "railway:migrate": "pnpm run db:migrate",
     "migrate:railway": "node scripts/migrate-to-railway.js"
   },
@@ -57,6 +57,9 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@hono/node-server": "^1.12.0",
+    "ioredis": "^5.4.1",
+    "bullmq": "^5.7.14",
     "drizzle-kit": "catalog:",
     "react-router": "^7.6.3",
     "zod": "4.1.1",
